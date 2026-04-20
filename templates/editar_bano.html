@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Editar Baño{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Editar Baño</h1>
+        <p>Modificar datos de la unidad {{ bano.codigo }}</p>
+    </div>
+    <a href="{{ url_for('banos') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="card">
+  <form method="POST">
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="codigo">Código de unidad</label>
+        <input id="codigo" name="codigo" value="{{ bano.codigo }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="tipo">Tipo de baño</label>
+        <select id="tipo" name="tipo" required>
+          <option value="standard"   {% if bano.tipo == 'standard'   %}selected{% endif %}>Standard</option>
+          <option value="vip"        {% if bano.tipo == 'vip'        %}selected{% endif %}>VIP</option>
+          <option value="accesible"  {% if bano.tipo == 'accesible'  %}selected{% endif %}>Accesible</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado" required>
+          <option value="disponible"    {% if bano.estado == 'disponible'    %}selected{% endif %}>Disponible</option>
+          <option value="alquilado"     {% if bano.estado == 'alquilado'     %}selected{% endif %}>Alquilado</option>
+          <option value="mantenimiento" {% if bano.estado == 'mantenimiento' %}selected{% endif %}>En mantenimiento</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="precio_dia">Precio por día ($)</label>
+        <input id="precio_dia" name="precio_dia" type="number" step="0.01" min="0" value="{{ bano.precio_dia }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="capacidad">Capacidad</label>
+        <input id="capacidad" name="capacidad" type="number" min="0" value="{{ bano.capacidad or '' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <input id="observaciones" name="observaciones" value="{{ bano.observaciones or '' }}">
+      </div>
+
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-primary">💾 Actualizar</button>
+      <a href="{{ url_for('banos') }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

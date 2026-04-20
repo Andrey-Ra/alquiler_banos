@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Reportes</h1>
+        <p>Resumen general de la operación del negocio</p>
+    </div>
+</div>
+
+<!-- ── STATS GENERALES ── -->
+<div class="stats-row" style="grid-template-columns: repeat(auto-fill, minmax(180px,1fr));">
+    <div class="stat-card">
+        <div class="stat-value">${{ "%.0f"|format(ingreso_total) }}</div>
+        <div class="stat-label">💰 Ingresos totales</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent2)">{{ alquileres_activos|length }}</div>
+        <div class="stat-label">📋 Alquileres activos</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ total_banos }}</div>
+        <div class="stat-label">🚽 Baños en inventario</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent2)">{{ disponibles }}</div>
+        <div class="stat-label">✅ Disponibles</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">{{ alquilados }}</div>
+        <div class="stat-label">📦 Alquilados</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--warning)">{{ en_mantenimiento }}</div>
+        <div class="stat-label">🔧 En mantenimiento</div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+    <!-- ── ALQUILERES ACTIVOS ── -->
+    <div class="card">
+        <h3 style="font-size:14px; margin-bottom:16px;">📋 Alquileres activos</h3>
+        {% if alquileres_activos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Vence</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in alquileres_activos %}
+                <tr>
+                    <td style="font-family:'DM Mono',monospace; color:var(--text-dim)">#{{ a.id }}</td>
+                    <td>{{ a.cliente.nombre }}</td>
+                    <td>
+                        {% set hoy = namespace(val=0) %}
+                        {% set dias_restantes = (a.fecha_fin - a.fecha_inicio).days %}
+                        <span style="font-size:12px;">{{ a.fecha_fin.strftime('%d/%m/%Y') }}</span>
+                    </td>
+                    <td style="font-family:'DM Mono',monospace; color:var(--accent2)">
+                        ${{ "%.2f"|format(a.total) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:20px;">
+            <p>No hay alquileres activos.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ── TOP CLIENTES ── -->
+    <div class="card">
+        <h3 style="font-size:14px; margin-bottom:16px;">🏆 Top clientes</h3>
+        {% if top_clientes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Alquileres</th>
+                    <th>Total pagado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in top_clientes %}
+                <tr>
+                    <td style="font-weight:600">{{ c.nombre }}</td>
+                    <td style="font-family:'DM Mono',monospace; text-align:center;">
+                        {{ c.total_alquileres }}
+                    </td>
+                    <td style="font-family:'DM Mono',monospace; color:var(--accent2)">
+                        ${{ "%.2f"|format(c.total_pagado or 0) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:20px;">
+            <p>Sin datos de clientes aún.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ── INGRESOS POR MES ── -->
+<div class="card">
+    <h3 style="font-size:14px; margin-bottom:16px;">📈 Ingresos por mes</h3>
+    {% if ingresos_mes %}
+    <div style="display:flex; align-items:flex-end; gap:12px; height:160px; padding:0 8px;">
+        {% set max_val = namespace(v=1) %}
+        {% for row in ingresos_mes %}
+        {% if row.total > max_val.v %}{% set max_val.v = row.total %}{% endif %}
+        {% endfor %}
+
+        {% for row in ingresos_mes %}
+        {% set altura = ((row.total / max_val.v) * 120)|int %}
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
+            <div style="font-size:11px; font-family:'DM Mono',monospace; color:var(--accent2);">
+                ${{ "%.0f"|format(row.total) }}
+            </div>
+            <div style="
+                        width:100%;
+                        background: linear-gradient(to top, var(--accent), var(--accent2));
+                        border-radius:6px 6px 0 0;
+                        min-height:4px;
+                        transition: height .3s;
+                        --bar-h: {{ altura }}px;
+                        height: var(--bar-h);
+           "></div>
+            <div style="font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace;">
+                {{ row.mes }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:20px;">
+        <p>No hay datos de ingresos aún.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ── BAÑOS EN MANTENIMIENTO ── -->
+{% if banos_mantenimiento %}
+<div class="card">
+    <h3 style="font-size:14px; margin-bottom:16px;">🔧 Baños actualmente en mantenimiento</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Baño</th>
+                <th>Tipo</th>
+                <th>Desde</th>
+                <th>Fecha estimada fin</th>
+                <th>Costo</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in banos_mantenimiento %}
+            <tr>
+                <td style="font-weight:600; font-family:'DM Mono',monospace;">{{ m.bano.codigo }}</td>
+                <td>
+                    {% if m.tipo_mant == 'limpieza' %}
+                    <span class="badge badge-blue">Limpieza</span>
+                    {% elif m.tipo_mant == 'reparacion' %}
+                    <span class="badge badge-red">Reparación</span>
+                    {% else %}
+                    <span class="badge badge-yellow">Revisión</span>
+                    {% endif %}
+                </td>
+                <td>{{ m.fecha_inicio.strftime('%d/%m/%Y') }}</td>
+                <td>
+                    {% if m.fecha_fin %}
+                    {{ m.fecha_fin.strftime('%d/%m/%Y') }}
+                    {% else %}
+                    <span style="color:var(--text-dim)">No definida</span>
+                    {% endif %}
+                </td>
+                <td style="font-family:'DM Mono',monospace">
+                    {% if m.costo %}${{ "%.2f"|format(m.costo) }}{% else %}—{% endif %}
+                </td>
+                <td style="color:var(--text-dim); font-size:13px;">
+                    {{ m.observaciones or '—' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

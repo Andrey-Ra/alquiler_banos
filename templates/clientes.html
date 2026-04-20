@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Clientes</h1>
+        <p>Gestión de clientes registrados</p>
+    </div>
+    <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-primary">+ Nuevo cliente</a>
+</div>
+
+<div class="card">
+  {% if clientes %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>RUC / CI</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+          <th>Tipo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clientes %}
+        <tr>
+          <td style="font-family:'DM Mono',monospace; color:var(--text-dim)">#{{ c.id }}</td>
+          <td style="font-weight:600">{{ c.nombre }}</td>
+          <td style="font-family:'DM Mono',monospace">{{ c.ruc_ci }}</td>
+          <td>{{ c.telefono }}</td>
+          <td style="color:var(--text-dim)">{{ c.email }}</td>
+          <td>
+            {% if c.tipo == 'empresa' %}
+              <span class="badge badge-blue">Empresa</span>
+            {% else %}
+              <span class="badge badge-green">Particular</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{{ url_for('detalle_cliente', id=c.id) }}" class="btn btn-ghost btn-sm">👁 Ver</a>
+              <a href="{{ url_for('editar_cliente', id=c.id) }}" class="btn btn-ghost btn-sm">✏️ Editar</a>
+              <a href="{{ url_for('eliminar_cliente', id=c.id) }}"
+                 class="btn btn-danger btn-sm"
+                 onclick="return confirm('¿Eliminar cliente {{ c.nombre }}?')">🗑 Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <p>No hay clientes registrados aún.</p>
+      <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-primary">Registrar primer cliente</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

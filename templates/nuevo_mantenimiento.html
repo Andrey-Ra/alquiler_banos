@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Mantenimiento{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Nuevo Mantenimiento</h1>
+        <p>Registrar un mantenimiento para un baño portátil</p>
+    </div>
+    <a href="{{ url_for('mantenimiento') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="card">
+  <form method="POST">
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="bano_id">Baño portátil</label>
+        <select id="bano_id" name="bano_id" required>
+          <option value="">-- Seleccionar baño --</option>
+          {% for b in banos %}
+          <option value="{{ b.id }}">
+            {{ b.codigo }} — {{ b.tipo|capitalize }}
+            ({{ b.estado }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="tipo_mant">Tipo de mantenimiento</label>
+        <select id="tipo_mant" name="tipo_mant" required>
+          <option value="limpieza">Limpieza</option>
+          <option value="reparacion">Reparación</option>
+          <option value="revision_general">Revisión general</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="fecha_inicio">Fecha de inicio</label>
+        <input id="fecha_inicio" name="fecha_inicio" type="date" required>
+      </div>
+
+      <div class="form-group">
+        <label for="fecha_fin">Fecha estimada de fin (opcional)</label>
+        <input id="fecha_fin" name="fecha_fin" type="date">
+      </div>
+
+      <div class="form-group">
+        <label for="costo">Costo estimado ($)</label>
+        <input id="costo" name="costo" type="number" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <input id="observaciones" name="observaciones" placeholder="Detalles del trabajo a realizar...">
+      </div>
+
+    </div>
+
+    <div style="margin-top:24px; padding:14px; background:rgba(247,201,79,.08);
+                border:1px solid rgba(247,201,79,.25); border-radius:8px;
+                font-size:13px; color:var(--warning); margin-bottom:20px;">
+      ⚠️ Al registrar el mantenimiento, el baño seleccionado cambiará su estado a
+      <strong>"En mantenimiento"</strong> y no estará disponible para nuevos alquileres.
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="submit" class="btn btn-warning">🔧 Registrar mantenimiento</button>
+      <a href="{{ url_for('mantenimiento') }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

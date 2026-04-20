@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Alquiler{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Nuevo Alquiler</h1>
+        <p>Registrar una nueva reserva de baños</p>
+    </div>
+    <a href="{{ url_for('alquileres') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="card">
+  <form method="POST">
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="cliente_id">Cliente</label>
+        <select id="cliente_id" name="cliente_id" required>
+          <option value="">-- Seleccionar cliente --</option>
+          {% for c in clientes %}
+          <option value="{{ c.id }}">{{ c.nombre }} ({{ c.ruc_ci }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="deposito">Depósito de garantía ($)</label>
+        <input id="deposito" name="deposito" type="number" step="0.01" min="0" value="0">
+      </div>
+
+      <div class="form-group">
+        <label for="fecha_inicio">Fecha de inicio</label>
+        <input id="fecha_inicio" name="fecha_inicio" type="date" required
+               oninput="calcularTotal()">
+      </div>
+
+      <div class="form-group">
+        <label for="fecha_fin">Fecha de fin</label>
+        <input id="fecha_fin" name="fecha_fin" type="date" required
+               oninput="calcularTotal()">
+      </div>
+
+      <div class="form-group span2">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" name="observaciones" placeholder="Notas del alquiler..."></textarea>
+      </div>
+
+    </div>
+
+    <!-- SELECTOR DE BAÑOS -->
+    <div style="margin-top:24px;">
+      <h3 style="font-size:14px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px;">
+        Baños disponibles
+      </h3>
+
+      {% if banos %}
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:12px;">
+        {% for b in banos %}
+        <div class="bano-card" id="card_{{ b.id }}" style="
+            background:var(--surface2); border:1px solid var(--border);
+            border-radius:10px; padding:16px; transition: border-color .2s;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <div style="font-weight:600; font-family:'DM Mono',monospace;">{{ b.codigo }}</div>
+              <div style="font-size:12px; color:var(--text-dim);">{{ b.tipo|capitalize }}</div>
+            </div>
+            <span class="badge badge-green" style="font-size:12px;">${{ "%.2f"|format(b.precio_dia) }}/día</span>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; text-transform:none; letter-spacing:0; font-size:14px; color:var(--text);">
+            <input type="checkbox" name="bano_ids" value="{{ b.id }}"
+                   data-precio="{{ b.precio_dia }}"
+                   onchange="toggleCantidad(this); calcularTotal()">
+            Seleccionar este baño
+          </label>
+          <div id="cant_{{ b.id }}" style="display:none; margin-top:10px;">
+            <label style="font-size:11px;">Cantidad</label>
+            <input type="number" name="cantidad_{{ b.id }}" value="1" min="1" max="10"
+                   style="width:80px; margin-top:4px;"
+                   oninput="calcularTotal()">
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="empty-state" style="padding:24px;">
+          <div class="empty-icon">😔</div>
+          <p>No hay baños disponibles en este momento.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- RESUMEN DE COSTO -->
+    <div style="margin-top:24px; background:var(--surface2); border:1px solid var(--border);
+                border-radius:10px; padding:18px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em;">Total estimado</div>
+        <div id="total_display" style="font-size:28px; font-weight:600; font-family:'DM Mono',monospace; color:var(--accent2);">$0.00</div>
+        <div id="dias_display" style="font-size:12px; color:var(--text-dim);">— días seleccionados</div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:12px 28px; font-size:15px;">
+        💾 Registrar alquiler
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+function toggleCantidad(checkbox) {
+    const div = document.getElementById('cant_' + checkbox.value);
+    const card = document.getElementById('card_' + checkbox.value);
+    div.style.display = checkbox.checked ? 'block' : 'none';
+    card.style.borderColor = checkbox.checked ? 'var(--accent)' : 'var(--border)';
+}
+
+function calcularTotal() {
+    const inicio = document.getElementById('fecha_inicio').value;
+    const fin    = document.getElementById('fecha_fin').value;
+
+    if (!inicio || !fin) return;
+
+    const dias = Math.round((new Date(fin) - new Date(inicio)) / 86400000);
+    if (dias <= 0) {
+        document.getElementById('total_display').textContent = '$0.00';
+        document.getElementById('dias_display').textContent  = 'Fechas inválidas';
+        return;
+    }
+
+    let total = 0;
+    document.querySelectorAll('input[name="bano_ids"]:checked').forEach(cb => {
+        const precio   = parseFloat(cb.dataset.precio);
+        const cantInput = document.querySelector(`input[name="cantidad_${cb.value}"]`);
+        const cantidad = cantInput ? parseInt(cantInput.value) || 1 : 1;
+        total += precio * cantidad * dias;
+    });
+
+    document.getElementById('total_display').textContent = '$' + total.toFixed(2);
+    document.getElementById('dias_display').textContent  = dias + ' día(s) × baños seleccionados';
+}
+</script>
+{% endblock %}

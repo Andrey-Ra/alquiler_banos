@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Baño {{ bano.codigo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Baño {{ bano.codigo }}</h1>
+        <p>Detalle e historial del equipo</p>
+    </div>
+    <a href="{{ url_for('banos') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<!-- INFO DEL BAÑO (SQLite) -->
+<div class="card">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+    <h3 style="font-size:14px;">🚽 Datos del equipo</h3>
+    <span style="font-size:11px; font-family:'DM Mono',monospace;
+                 background:rgba(56,217,169,.15); color:var(--accent2);
+                 padding:2px 8px; border-radius:99px;">SQLite</span>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;
+                  letter-spacing:.08em; margin-bottom:4px;">Código</div>
+      <div style="font-weight:600; font-family:'DM Mono',monospace;">{{ bano.codigo }}</div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;
+                  letter-spacing:.08em; margin-bottom:4px;">Tipo</div>
+      <div style="font-weight:600;">{{ bano.tipo|capitalize }}</div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;
+                  letter-spacing:.08em; margin-bottom:4px;">Precio / día</div>
+      <div style="font-weight:600; font-family:'DM Mono',monospace;
+                  color:var(--accent2)">${{ "%.2f"|format(bano.precio_dia) }}</div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;
+                  letter-spacing:.08em; margin-bottom:4px;">Estado</div>
+      {% if bano.estado == 'disponible' %}
+        <span class="badge badge-green">Disponible</span>
+      {% elif bano.estado == 'alquilado' %}
+        <span class="badge badge-blue">Alquilado</span>
+      {% else %}
+        <span class="badge badge-red">Mantenimiento</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if bano.observaciones %}
+  <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);
+              font-size:13px; color:var(--text-dim);">
+    📝 {{ bano.observaciones }}
+  </div>
+  {% endif %}
+</div>
+
+<!-- HISTORIAL DE EVENTOS (MongoDB) -->
+<div class="card">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+    <h3 style="font-size:14px;">⚡ Historial de eventos</h3>
+    <span style="font-size:11px; font-family:'DM Mono',monospace;
+                 background:rgba(79,142,247,.15); color:var(--accent);
+                 padding:2px 8px; border-radius:99px;">MongoDB</span>
+  </div>
+
+  {% if logs %}
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    {% for log in logs %}
+    <div style="display:flex; gap:14px; align-items:flex-start;
+                padding:12px; background:var(--surface2);
+                border-radius:8px; border-left:3px solid
+                {% if log.accion == 'crear' %}var(--accent2)
+                {% elif log.accion == 'completar' %}var(--accent)
+                {% elif log.accion == 'eliminar' %}var(--danger)
+                {% else %}var(--warning){% endif %};">
+
+      <div style="font-size:20px; line-height:1;">
+        {% if log.accion == 'crear' %}✚
+        {% elif log.accion == 'completar' %}✔
+        {% elif log.accion == 'editar' %}✎
+        {% else %}●{% endif %}
+      </div>
+
+      <div style="flex:1;">
+        <div style="font-size:13px; font-weight:600;">{{ log.descripcion }}</div>
+        <div style="margin-top:3px; display:flex; gap:8px; align-items:center;">
+          <span style="font-size:11px; color:var(--text-dim);
+                       font-family:'DM Mono',monospace;">
+            {{ log.fecha.strftime('%d/%m/%Y %H:%M:%S') }}
+          </span>
+          {% if log.modulo == 'mantenimiento' %}
+            <span class="badge badge-red" style="font-size:10px;">Mantenimiento</span>
+          {% else %}
+            <span class="badge badge-blue" style="font-size:10px;">Baño</span>
+          {% endif %}
+        </div>
+        {% if log.datos_extra %}
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          {% for k, v in log.datos_extra.items() %}
+          <span style="font-size:11px; font-family:'DM Mono',monospace;
+                       background:var(--surface); padding:2px 8px;
+                       border-radius:4px; color:var(--text-dim);">
+            <span style="color:var(--accent);">{{ k }}</span>: {{ v }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="padding:20px;">
+    <p>No hay eventos registrados para este baño.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

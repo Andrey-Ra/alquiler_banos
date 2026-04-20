@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Pago{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Registrar Pago</h1>
+        <p>Alquiler #{{ alquiler.id }} — {{ alquiler.cliente.nombre }}</p>
+    </div>
+    <a href="{{ url_for('detalle_alquiler', id=alquiler.id) }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<!-- RESUMEN DEL ALQUILER -->
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Total del alquiler</div>
+      <div style="font-size:22px; font-weight:600; font-family:'DM Mono',monospace;">
+        ${{ "%.2f"|format(alquiler.total) }}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Ya pagado</div>
+      <div style="font-size:22px; font-weight:600; font-family:'DM Mono',monospace; color:var(--accent2);">
+        ${{ "%.2f"|format(pagado) }}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Saldo pendiente</div>
+      <div style="font-size:22px; font-weight:600; font-family:'DM Mono',monospace; color:var(--warning);">
+        ${{ "%.2f"|format(pendiente) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORMULARIO -->
+<div class="card">
+  <form method="POST">
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="monto">Monto a pagar ($)</label>
+        <input id="monto" name="monto" type="number" step="0.01" min="0.01"
+               value="{{ "%.2f"|format(pendiente) }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="tipo_pago">Tipo de pago</label>
+        <select id="tipo_pago" name="tipo_pago" required>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="deposito">Depósito</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="referencia">Referencia / Comprobante</label>
+        <input id="referencia" name="referencia" placeholder="Nro. de comprobante (opcional)">
+      </div>
+
+      <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <input id="observaciones" name="observaciones" placeholder="Notas adicionales (opcional)">
+      </div>
+
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-success">💳 Registrar pago</button>
+      <a href="{{ url_for('detalle_alquiler', id=alquiler.id) }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<!-- HISTORIAL DE PAGOS DE ESTE ALQUILER -->
+{% if alquiler.pagos %}
+<div class="card">
+  <h3 style="font-size:14px; margin-bottom:14px;">Pagos anteriores de este alquiler</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Monto</th>
+        <th>Tipo</th>
+        <th>Referencia</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in alquiler.pagos %}
+      <tr>
+        <td>{{ p.fecha_pago.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td style="font-family:'DM Mono',monospace; color:var(--accent2)">${{ "%.2f"|format(p.monto) }}</td>
+        <td>{{ p.tipo_pago|capitalize }}</td>
+        <td style="color:var(--text-dim)">{{ p.referencia or '—' }}</td>
+        <td>
+          {% if p.estado == 'completado' %}
+            <span class="badge badge-green">Completado</span>
+          {% elif p.estado == 'reembolsado' %}
+            <span class="badge badge-red">Reembolsado</span>
+          {% else %}
+            <span class="badge badge-yellow">Pendiente</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.estado == 'completado' %}
+          <a href="{{ url_for('anular_pago', pago_id=p.id) }}"
+             class="btn btn-danger btn-sm"
+             onclick="return confirm('¿Anular este pago?')">Anular</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}

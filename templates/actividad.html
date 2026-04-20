@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Actividad del Sistema{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Actividad del Sistema</h1>
+        <p>Últimos 50 eventos registrados en MongoDB</p>
+    </div>
+</div>
+
+<!-- FILTROS POR MÓDULO -->
+<div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+    {% for mod in [
+        ('todos',          'Todos',          '🔎'),
+        ('clientes',       'Clientes',       '👥'),
+        ('banos',          'Baños',          '🚽'),
+        ('alquileres',     'Alquileres',     '📋'),
+        ('pagos',          'Pagos',          '💳'),
+        ('mantenimiento',  'Mantenimiento',  '🔧')
+    ] %}
+    <a href="{{ url_for('actividad', modulo=mod[0]) }}"
+       class="btn btn-sm {% if modulo_activo == mod[0] %}btn-primary{% else %}btn-ghost{% endif %}">
+        {{ mod[2] }} {{ mod[1] }}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="card">
+  {% if logs %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Módulo</th>
+          <th>Acción</th>
+          <th>Descripción</th>
+          <th>Datos extra</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="font-family:'DM Mono',monospace; font-size:12px; white-space:nowrap;">
+            {{ log.fecha.strftime('%d/%m/%Y %H:%M:%S') }}
+          </td>
+          <td>
+            {% if log.modulo == 'clientes' %}
+              <span class="badge badge-green">👥 Clientes</span>
+            {% elif log.modulo == 'banos' %}
+              <span class="badge badge-blue">🚽 Baños</span>
+            {% elif log.modulo == 'alquileres' %}
+              <span class="badge badge-yellow">📋 Alquileres</span>
+            {% elif log.modulo == 'pagos' %}
+              <span class="badge badge-green">💳 Pagos</span>
+            {% elif log.modulo == 'mantenimiento' %}
+              <span class="badge badge-red">🔧 Mantenimiento</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if log.accion == 'crear' %}
+              <span style="color:var(--accent2); font-weight:600; font-size:12px;">✚ CREAR</span>
+            {% elif log.accion == 'editar' %}
+              <span style="color:var(--accent); font-weight:600; font-size:12px;">✎ EDITAR</span>
+            {% elif log.accion == 'eliminar' %}
+              <span style="color:var(--danger); font-weight:600; font-size:12px;">✕ ELIMINAR</span>
+            {% elif log.accion == 'finalizar' %}
+              <span style="color:var(--accent2); font-weight:600; font-size:12px;">✔ FINALIZAR</span>
+            {% elif log.accion == 'completar' %}
+              <span style="color:var(--warning); font-weight:600; font-size:12px;">✔ COMPLETAR</span>
+            {% else %}
+              <span style="color:var(--text-dim); font-size:12px;">{{ log.accion|upper }}</span>
+            {% endif %}
+          </td>
+          <td style="font-size:13px;">{{ log.descripcion }}</td>
+          <td>
+            {% if log.datos_extra %}
+            <div style="font-family:'DM Mono',monospace; font-size:11px;
+                        color:var(--text-dim); background:var(--surface2);
+                        padding:6px 10px; border-radius:6px; max-width:220px;
+                        overflow:hidden;">
+              {% for k, v in log.datos_extra.items() %}
+                <div><span style="color:var(--accent)">{{ k }}</span>: {{ v }}</div>
+              {% endfor %}
+            </div>
+            {% else %}
+              <span style="color:var(--text-dim)">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <p>No hay eventos registrados{% if modulo_activo != 'todos' %} para este módulo{% endif %}.</p>
+      <p style="font-size:12px; margin-top:4px;">Realiza alguna acción en el sistema para ver los logs aquí.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

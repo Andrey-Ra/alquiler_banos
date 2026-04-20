@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Editar Cliente{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Editar Cliente</h1>
+        <p>Modificar datos de {{ cliente.nombre }}</p>
+    </div>
+    <a href="{{ url_for('clientes') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="card">
+  <form method="POST">
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="nombre">Nombre completo / Razón social</label>
+        <input id="nombre" name="nombre" value="{{ cliente.nombre }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="tipo">Tipo de cliente</label>
+        <select id="tipo" name="tipo" required>
+          <option value="particular" {% if cliente.tipo == 'particular' %}selected{% endif %}>Particular</option>
+          <option value="empresa"    {% if cliente.tipo == 'empresa'    %}selected{% endif %}>Empresa</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="ruc_ci">RUC / Cédula de identidad</label>
+        <input id="ruc_ci" name="ruc_ci" value="{{ cliente.ruc_ci }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="telefono">Teléfono</label>
+        <input id="telefono" name="telefono" value="{{ cliente.telefono }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Correo electrónico</label>
+        <input id="email" name="email" type="email" value="{{ cliente.email }}">
+      </div>
+
+      <div class="form-group">
+        <label for="direccion">Dirección</label>
+        <input id="direccion" name="direccion" value="{{ cliente.direccion }}">
+      </div>
+
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-primary">💾 Actualizar</button>
+      <a href="{{ url_for('clientes') }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

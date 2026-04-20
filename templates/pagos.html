@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Pagos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Pagos</h1>
+        <p>Historial de todos los pagos registrados</p>
+    </div>
+</div>
+
+<div class="card">
+  {% if pagos %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Alquiler</th>
+          <th>Cliente</th>
+          <th>Monto</th>
+          <th>Tipo</th>
+          <th>Referencia</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pagos %}
+        <tr>
+          <td style="font-family:'DM Mono',monospace; color:var(--text-dim)">#{{ p.id }}</td>
+          <td>
+            <a href="{{ url_for('detalle_alquiler', id=p.alquiler_id) }}"
+               style="color:var(--accent); text-decoration:none;">
+              Alquiler #{{ p.alquiler_id }}
+            </a>
+          </td>
+          <td>{{ p.alquiler.cliente.nombre }}</td>
+          <td style="font-family:'DM Mono',monospace; color:var(--accent2); font-weight:600;">
+            ${{ "%.2f"|format(p.monto) }}
+          </td>
+          <td>{{ p.tipo_pago|capitalize }}</td>
+          <td style="font-family:'DM Mono',monospace; color:var(--text-dim)">
+            {{ p.referencia or '—' }}
+          </td>
+          <td>{{ p.fecha_pago.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            {% if p.estado == 'completado' %}
+              <span class="badge badge-green">Completado</span>
+            {% elif p.estado == 'reembolsado' %}
+              <span class="badge badge-red">Reembolsado</span>
+            {% else %}
+              <span class="badge badge-yellow">Pendiente</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+      <div class="empty-icon">💳</div>
+      <p>No hay pagos registrados aún.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

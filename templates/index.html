@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Sistema de Alquiler{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Panel Principal</h1>
+        <p>Resumen general del sistema</p>
+    </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row" style="grid-template-columns: repeat(auto-fill, minmax(160px,1fr));">
+    <div class="stat-card"style="overflow:hidden; min-width:0;">
+        <div class="stat-value" style="font-size:clamp(14px, 2.5vw, 32px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${{ "{:.0f}".format(ingreso_total) }}">${{ "{:.0f}".format(ingreso_total) }}</div>
+        <div class="stat-label">💰 Ingresos totales</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent2)">{{ disponibles }}</div>
+        <div class="stat-label">✅ Baños disponibles</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">{{ alquilados }}</div>
+        <div class="stat-label">📦 Baños alquilados</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--warning)">{{ en_mantenimiento }}</div>
+        <div class="stat-label">🔧 En mantenimiento</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent2)">{{ alquileres_activos }}</div>
+        <div class="stat-label">📋 Alquileres activos</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--warning)">{{ total_clientes }}</div>
+        <div class="stat-label">👥 Clientes activos</div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+    <!-- ALQUILERES RECIENTES -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:14px;">📋 Alquileres recientes</h3>
+            <a href="{{ url_for('alquileres') }}" style="font-size:12px; color:var(--accent); text-decoration:none;">Ver todos →</a>
+        </div>
+        {% if alquileres_recientes %}
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            {% for a in alquileres_recientes %}
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--surface2); border-radius:8px;">
+                <div>
+                    <div style="font-size:13px; font-weight:600;">{{ a.cliente.nombre }}</div>
+                    <div style="font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace;">
+                        {{ a.fecha_inicio.strftime('%d/%m/%Y') }} → {{ a.fecha_fin.strftime('%d/%m/%Y') }}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-family:'DM Mono',monospace; font-size:13px; color:var(--accent2);">
+                        ${{ "%.2f"|format(a.total) }}
+                    </div>
+                    {% if a.estado == 'activo' %}
+                        <span class="badge badge-green" style="font-size:10px;">Activo</span>
+                    {% elif a.estado == 'finalizado' %}
+                        <span class="badge badge-blue" style="font-size:10px;">Finalizado</span>
+                    {% else %}
+                        <span class="badge badge-yellow" style="font-size:10px;">{{ a.estado }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:20px;">
+            <p>No hay alquileres aún.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ACTIVIDAD RECIENTE (MongoDB) -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <h3 style="font-size:14px;">⚡ Actividad reciente</h3>
+                <span style="font-size:10px; font-family:'DM Mono',monospace; background:rgba(79,142,247,.15); color:var(--accent); padding:2px 6px; border-radius:99px;">MongoDB</span>
+            </div>
+            <a href="{{ url_for('actividad') }}" style="font-size:12px; color:var(--accent); text-decoration:none;">Ver todo →</a>
+        </div>
+        {% if logs_recientes %}
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            {% for log in logs_recientes %}
+            <div style="display:flex; gap:10px; align-items:flex-start; padding:10px 12px; background:var(--surface2); border-radius:8px;">
+                <div style="font-size:16px;">
+                    {% if log.accion == 'crear' %}✚
+                    {% elif log.accion == 'finalizar' %}✔
+                    {% elif log.accion == 'editar' %}✎
+                    {% elif log.accion == 'eliminar' %}✕
+                    {% else %}●{% endif %}
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:12px; font-weight:600;">{{ log.descripcion }}</div>
+                    <div style="font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace; margin-top:2px;">
+                        {{ log.fecha.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                </div>
+                {% if log.modulo == 'clientes' %}
+                    <span class="badge badge-green" style="font-size:10px;">Clientes</span>
+                {% elif log.modulo == 'banos' %}
+                    <span class="badge badge-blue" style="font-size:10px;">Baños</span>
+                {% elif log.modulo == 'alquileres' %}
+                    <span class="badge badge-yellow" style="font-size:10px;">Alquileres</span>
+                {% elif log.modulo == 'pagos' %}
+                    <span class="badge badge-green" style="font-size:10px;">Pagos</span>
+                {% elif log.modulo == 'mantenimiento' %}
+                    <span class="badge badge-red" style="font-size:10px;">Mantenimiento</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:20px;">
+            <p>No hay actividad registrada aún.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ACCESOS RÁPIDOS -->
+<div class="card">
+    <h3 style="font-size:14px; margin-bottom:14px;">⚡ Accesos rápidos</h3>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-ghost">+ Nuevo cliente</a>
+        <a href="{{ url_for('nuevo_bano') }}" class="btn btn-ghost">+ Nuevo baño</a>
+        <a href="{{ url_for('nuevo_alquiler') }}" class="btn btn-primary">+ Nuevo alquiler</a>
+        <a href="{{ url_for('nuevo_mantenimiento') }}" class="btn btn-warning">+ Mantenimiento</a>
+        <a href="{{ url_for('reportes') }}" class="btn btn-ghost">📊 Ver reportes</a>
+    </div>
+</div>
+
+{% endblock %}

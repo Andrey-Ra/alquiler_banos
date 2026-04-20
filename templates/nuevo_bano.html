@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Baño{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Nuevo Baño</h1>
+        <p>Registrar una nueva unidad al inventario</p>
+    </div>
+    <a href="{{ url_for('banos') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="card">
+  <form method="POST">
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="codigo">Código de unidad</label>
+        <input id="codigo" name="codigo" placeholder="Ej: BP-001" required>
+      </div>
+
+      <div class="form-group">
+        <label for="tipo">Tipo de baño</label>
+        <select id="tipo" name="tipo" required>
+          <option value="standard">Standard</option>
+          <option value="vip">VIP</option>
+          <option value="accesible">Accesible</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="estado">Estado inicial</label>
+        <select id="estado" name="estado" required>
+          <option value="disponible">Disponible</option>
+          <option value="mantenimiento">En mantenimiento</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="precio_dia">Precio por día ($)</label>
+        <input id="precio_dia" name="precio_dia" type="number" step="0.01" min="0" placeholder="Ej: 50.00" required>
+      </div>
+
+      <div class="form-group">
+        <label for="capacidad">Capacidad (litros o usos)</label>
+        <input id="capacidad" name="capacidad" type="number" min="0" placeholder="Ej: 200">
+      </div>
+
+      <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <input id="observaciones" name="observaciones" placeholder="Características especiales...">
+      </div>
+
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-success">💾 Guardar baño</button>
+      <a href="{{ url_for('banos') }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

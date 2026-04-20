@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Alquiler de Baños{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ── VARIABLES ── */
+        :root {
+            --bg:        #0f1117;
+            --surface:   #1a1d27;
+            --surface2:  #22263a;
+            --border:    #2e3347;
+            --accent:    #4f8ef7;
+            --accent2:   #38d9a9;
+            --danger:    #f76c6c;
+            --warning:   #f7c94f;
+            --text:      #e8eaf0;
+            --text-dim:  #8b90a7;
+            --radius:    10px;
+            --shadow:    0 4px 24px rgba(0,0,0,.4);
+        }
+
+        /* ── RESET ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 230px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+        }
+        .sidebar-brand {
+            padding: 24px 20px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-brand .logo-icon {
+            font-size: 26px;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .sidebar-brand h2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.3;
+        }
+        .sidebar-brand span {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: 'DM Mono', monospace;
+        }
+        .sidebar-nav {
+            padding: 16px 12px;
+            flex: 1;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-dim);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            padding: 0 8px 8px;
+            margin-top: 12px;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: var(--radius);
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all .18s;
+            margin-bottom: 2px;
+        }
+        .nav-link:hover { background: var(--surface2); color: var(--text); }
+        .nav-link.active { background: rgba(79,142,247,.15); color: var(--accent); }
+        .nav-link .icon { font-size: 16px; width: 20px; text-align: center; }
+
+        /* ── MAIN ── */
+        .main {
+            margin-left: 230px;
+            flex: 1;
+            padding: 32px 36px;
+            max-width: calc(100vw - 230px);
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .page-header h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+        .page-header p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 3px;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* ── STATS ROW ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+        .stat-card .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            color: var(--accent);
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        thead th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+        }
+        tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--surface2); }
+        tbody td { padding: 12px 14px; }
+
+        /* ── BADGES ── */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+        }
+        .badge-green  { background: rgba(56,217,169,.15); color: var(--accent2); }
+        .badge-blue   { background: rgba(79,142,247,.15); color: var(--accent); }
+        .badge-red    { background: rgba(247,108,108,.15); color: var(--danger); }
+        .badge-yellow { background: rgba(247,201,79,.15);  color: var(--warning); }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: opacity .18s, transform .12s;
+        }
+        .btn:hover { opacity: .88; transform: translateY(-1px); }
+        .btn-primary  { background: var(--accent);  color: #fff; }
+        .btn-success  { background: var(--accent2); color: #0f1117; }
+        .btn-danger   { background: var(--danger);  color: #fff; }
+        .btn-ghost    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+        .btn-warning  { background: var(--warning);  color: #0f1117; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* ── FORMS ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        .form-grid.full { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.span2 { grid-column: span 2; }
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        input, select, textarea {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            padding: 10px 14px;
+            outline: none;
+            transition: border-color .18s;
+            width: 100%;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+        }
+        select option { background: var(--surface2); }
+        textarea { resize: vertical; min-height: 80px; }
+
+        /* ── ALERTS / FLASH ── */
+        .alerts { margin-bottom: 20px; }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .alert-ok    { background: rgba(56,217,169,.12); border: 1px solid rgba(56,217,169,.3); color: var(--accent2); }
+        .alert-error { background: rgba(247,108,108,.12); border: 1px solid rgba(247,108,108,.3); color: var(--danger); }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-dim);
+        }
+        .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; margin-bottom: 16px; }
+
+        /* ── ACTION ROW ── */
+        .actions { display: flex; gap: 6px; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <span class="logo-icon">🚿</span>
+        <h2>Alquiler de Baños</h2>
+        <span>v1.0 · Sistema</span>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-label">Principal</div>
+        <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+            <span class="icon">🏠</span> Inicio
+        </a>
+
+        <a href="{{ url_for('actividad') }}" class="nav-link {% if request.endpoint == 'actividad' %}active{% endif %}">
+            <span class="icon">⚡</span> Actividad
+        </a>
+
+        <div class="nav-label">Gestión</div>
+        <a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}">
+            <span class="icon">👥</span> Clientes
+        </a>
+        <a href="{{ url_for('banos') }}" class="nav-link {% if 'bano' in request.endpoint %}active{% endif %}">
+            <span class="icon">🚽</span> Baños
+        </a>
+        <a href="{{ url_for('alquileres') }}" class="nav-link {% if 'alquiler' in request.endpoint %}active{% endif %}">
+            <span class="icon">📋</span> Alquileres
+        </a>
+        <a href="{{ url_for('pagos') }}" class="nav-link {% if 'pago' in request.endpoint %}active{% endif %}">
+            <span class="icon">💳</span> Pagos
+        </a>
+
+        <div class="nav-label">Operaciones</div>
+        <a href="{{ url_for('mantenimiento') }}" class="nav-link {% if 'mantenimiento' in request.endpoint %}active{% endif %}">
+            <span class="icon">🔧</span> Mantenimiento
+        </a>
+        <a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}">
+            <span class="icon">📊</span> Reportes
+        </a>
+    </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="alerts">
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>

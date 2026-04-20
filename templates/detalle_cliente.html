@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Cliente {{ cliente.nombre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ cliente.nombre }}</h1>
+        <p>Perfil completo del cliente</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <a href="{{ url_for('editar_cliente', id=cliente.id) }}" class="btn btn-ghost">✏️ Editar</a>
+        <a href="{{ url_for('clientes') }}" class="btn btn-ghost">← Volver</a>
+    </div>
+</div>
+
+<!-- DATOS DEL CLIENTE (SQLite) -->
+<div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <h3 style="font-size:14px;">👤 Datos del cliente</h3>
+        <span style="font-size:11px; font-family:'DM Mono',monospace; background:rgba(56,217,169,.15); color:var(--accent2); padding:2px 8px; border-radius:99px;">SQLite</span>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;">
+        <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">RUC / CI</div>
+            <div style="font-weight:600; font-family:'DM Mono',monospace;">{{ cliente.ruc_ci }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Teléfono</div>
+            <div style="font-weight:600;">{{ cliente.telefono }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Tipo</div>
+            {% if cliente.tipo == 'empresa' %}
+                <span class="badge badge-blue">Empresa</span>
+            {% else %}
+                <span class="badge badge-green">Particular</span>
+            {% endif %}
+        </div>
+        <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Email</div>
+            <div style="font-weight:600;">{{ cliente.email or '—' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Dirección</div>
+            <div style="font-weight:600;">{{ cliente.direccion or '—' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Total gastado</div>
+            <div style="font-weight:600; font-family:'DM Mono',monospace; color:var(--accent2);">${{ "%.2f"|format(total_gastado) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- HISTORIAL DE ALQUILERES (SQLite) -->
+<div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <h3 style="font-size:14px;">📋 Historial de alquileres</h3>
+        <span style="font-size:11px; font-family:'DM Mono',monospace; background:rgba(56,217,169,.15); color:var(--accent2); padding:2px 8px; border-radius:99px;">SQLite</span>
+    </div>
+    {% if alquileres %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Fecha inicio</th>
+                <th>Fecha fin</th>
+                <th>Días</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in alquileres %}
+            {% set dias = (a.fecha_fin - a.fecha_inicio).days %}
+            <tr>
+                <td style="font-family:'DM Mono',monospace; color:var(--text-dim)">#{{ a.id }}</td>
+                <td>{{ a.fecha_inicio.strftime('%d/%m/%Y') }}</td>
+                <td>{{ a.fecha_fin.strftime('%d/%m/%Y') }}</td>
+                <td style="font-family:'DM Mono',monospace;">{{ dias }}</td>
+                <td style="font-family:'DM Mono',monospace; color:var(--accent2);">${{ "%.2f"|format(a.total) }}</td>
+                <td>
+                    {% if a.estado == 'activo' %}
+                        <span class="badge badge-green">Activo</span>
+                    {% elif a.estado == 'finalizado' %}
+                        <span class="badge badge-blue">Finalizado</span>
+                    {% elif a.estado == 'cancelado' %}
+                        <span class="badge badge-red">Cancelado</span>
+                    {% else %}
+                        <span class="badge badge-yellow">Pendiente</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('detalle_alquiler', id=a.id) }}" class="btn btn-ghost btn-sm">👁 Ver</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:20px;">
+        <p>Este cliente no tiene alquileres registrados.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- EVENTOS DEL CLIENTE (MongoDB) -->
+<div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <h3 style="font-size:14px;">⚡ Eventos del cliente</h3>
+        <span style="font-size:11px; font-family:'DM Mono',monospace; background:rgba(79,142,247,.15); color:var(--accent); padding:2px 8px; border-radius:99px;">MongoDB</span>
+    </div>
+    {% if logs %}
+    <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for log in logs %}
+        {% if log.accion == 'crear' %}{% set icono = '✚' %}
+        {% elif log.accion == 'editar' %}{% set icono = '✎' %}
+        {% elif log.accion == 'eliminar' %}{% set icono = '✕' %}
+        {% else %}{% set icono = '●' %}{% endif %}
+        <div style="display:flex; gap:12px; align-items:center; padding:10px 12px; background:var(--surface2); border-radius:8px;">
+            <div style="font-size:16px;">{{ icono }}</div>
+            <div style="flex:1;">
+                <div style="font-size:13px; font-weight:600;">{{ log.descripcion }}</div>
+                <div style="font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace; margin-top:2px;">
+                    {{ log.fecha.strftime('%d/%m/%Y %H:%M:%S') }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:20px;">
+        <p>No hay eventos registrados para este cliente.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

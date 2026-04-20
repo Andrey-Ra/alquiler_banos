@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Baños Portátiles{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Baños Portátiles</h1>
+        <p>Inventario de unidades registradas</p>
+    </div>
+    <a href="{{ url_for('nuevo_bano') }}" class="btn btn-success">+ Nuevo baño</a>
+</div>
+
+<div class="card">
+  {% if banos %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Precio / día</th>
+          <th>Capacidad</th>
+          <th>Observaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in banos %}
+        <tr>
+          <td style="font-family:'DM Mono',monospace; font-weight:600">{{ b.codigo }}</td>
+          <td>
+            {% if b.tipo == 'vip' %}
+              <span class="badge badge-blue">VIP</span>
+            {% elif b.tipo == 'accesible' %}
+              <span class="badge badge-yellow">Accesible</span>
+            {% else %}
+              <span class="badge badge-green">Standard</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if b.estado == 'disponible' %}
+              <span class="badge badge-green">Disponible</span>
+            {% elif b.estado == 'alquilado' %}
+              <span class="badge badge-blue">Alquilado</span>
+            {% else %}
+              <span class="badge badge-red">Mantenimiento</span>
+            {% endif %}
+          </td>
+          <td style="font-family:'DM Mono',monospace">${{ "%.2f"|format(b.precio_dia) }}</td>
+          <td style="color:var(--text-dim)">{{ b.capacidad or '—' }}</td>
+          <td style="color:var(--text-dim); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ b.observaciones or '—' }}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{{ url_for('detalle_bano', id=b.id) }}" class="btn btn-ghost btn-sm">👁 Ver</a>
+              <a href="{{ url_for('editar_bano', id=b.id) }}" class="btn btn-ghost btn-sm">✏️ Editar</a>
+              <a href="{{ url_for('eliminar_bano', id=b.id) }}"
+                 class="btn btn-danger btn-sm"
+                 onclick="return confirm('¿Eliminar baño {{ b.codigo }}?')">🗑 Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+      <div class="empty-icon">🚽</div>
+      <p>No hay baños registrados en el inventario.</p>
+      <a href="{{ url_for('nuevo_bano') }}" class="btn btn-success">Registrar primer baño</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

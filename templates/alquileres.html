@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Alquileres{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Alquileres</h1>
+        <p>Registro de todos los alquileres</p>
+    </div>
+    <a href="{{ url_for('nuevo_alquiler') }}" class="btn btn-primary">+ Nuevo alquiler</a>
+</div>
+
+<div class="card">
+  {% if alquileres %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Fecha inicio</th>
+          <th>Fecha fin</th>
+          <th>Días</th>
+          <th>Total</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in alquileres %}
+        {% set dias = (a.fecha_fin - a.fecha_inicio).days %}
+        <tr>
+          <td style="font-family:'DM Mono',monospace; color:var(--text-dim)">#{{ a.id }}</td>
+          <td style="font-weight:600">{{ a.cliente.nombre }}</td>
+          <td>{{ a.fecha_inicio.strftime('%d/%m/%Y') }}</td>
+          <td>{{ a.fecha_fin.strftime('%d/%m/%Y') }}</td>
+          <td style="font-family:'DM Mono',monospace">{{ dias }}</td>
+          <td style="font-family:'DM Mono',monospace; color:var(--accent2)">${{ "%.2f"|format(a.total) }}</td>
+          <td>
+            {% if a.estado == 'activo' %}
+              <span class="badge badge-green">Activo</span>
+            {% elif a.estado == 'finalizado' %}
+              <span class="badge badge-blue">Finalizado</span>
+            {% elif a.estado == 'cancelado' %}
+              <span class="badge badge-red">Cancelado</span>
+            {% else %}
+              <span class="badge badge-yellow">Pendiente</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{{ url_for('detalle_alquiler', id=a.id) }}" class="btn btn-ghost btn-sm">👁 Ver</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>No hay alquileres registrados aún.</p>
+      <a href="{{ url_for('nuevo_alquiler') }}" class="btn btn-primary">Crear primer alquiler</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}Alquiler #{{ alquiler.id }}{% endblock %}
+
+{% block content %}
+{% set dias = (alquiler.fecha_fin - alquiler.fecha_inicio).days %}
+
+<div class="page-header">
+    <div>
+        <h1>Alquiler #{{ alquiler.id }}</h1>
+        <p>{{ alquiler.cliente.nombre }}</p>
+    </div>
+    <a href="{{ url_for('alquileres') }}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<!-- INFO GENERAL -->
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Cliente</div>
+      <div style="font-weight:600;">{{ alquiler.cliente.nombre }}</div>
+      <div style="font-size:12px; color:var(--text-dim);">{{ alquiler.cliente.telefono }}</div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Período</div>
+      <div style="font-weight:600;">{{ alquiler.fecha_inicio.strftime('%d/%m/%Y') }}</div>
+      <div style="font-size:12px; color:var(--text-dim);">→ {{ alquiler.fecha_fin.strftime('%d/%m/%Y') }} ({{ dias }} días)</div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Total / Depósito</div>
+      <div style="font-weight:600; font-family:'DM Mono',monospace; color:var(--accent2)">${{ "%.2f"|format(alquiler.total) }}</div>
+      <div style="font-size:12px; color:var(--text-dim);">Depósito: ${{ "%.2f"|format(alquiler.deposito or 0) }}</div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;">Estado</div>
+      {% if alquiler.estado == 'activo' %}
+        <span class="badge badge-green">Activo</span>
+      {% elif alquiler.estado == 'finalizado' %}
+        <span class="badge badge-blue">Finalizado</span>
+      {% else %}
+        <span class="badge badge-yellow">{{ alquiler.estado }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if alquiler.observaciones %}
+  <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); font-size:13px; color:var(--text-dim);">
+    📝 {{ alquiler.observaciones }}
+  </div>
+  {% endif %}
+</div>
+
+<!-- DETALLE DE BAÑOS -->
+<div class="card">
+  <h3 style="font-size:14px; margin-bottom:14px;">Baños incluidos</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Tipo</th>
+        <th>Precio/día</th>
+        <th>Cantidad</th>
+        <th>Días</th>
+        <th>Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in alquiler.detalles %}
+      <tr>
+        <td style="font-family:'DM Mono',monospace; font-weight:600;">{{ d.bano.codigo }}</td>
+        <td>{{ d.bano.tipo|capitalize }}</td>
+        <td style="font-family:'DM Mono',monospace">${{ "%.2f"|format(d.bano.precio_dia) }}</td>
+        <td>{{ d.cantidad }}</td>
+        <td>{{ dias }}</td>
+        <td style="font-family:'DM Mono',monospace; color:var(--accent2)">${{ "%.2f"|format(d.subtotal) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ACCIONES -->
+{% if alquiler.estado == 'activo' %}
+<div class="card" style="display:flex; align-items:center; justify-content:space-between;">
+  <div>
+    <div style="font-weight:600;">Finalizar este alquiler</div>
+    <div style="font-size:13px; color:var(--text-dim);">Los baños volverán a estado "disponible".</div>
+  </div>
+  <form method="POST" action="{{ url_for('finalizar_alquiler', id=alquiler.id) }}"
+        onsubmit="return confirm('¿Confirmar finalización del alquiler?')">
+    <button type="submit" class="btn btn-success">✅ Finalizar alquiler</button>
+  </form>
+</div>
+
+<div class="card" style="display:flex; align-items:center; justify-content:space-between;">
+  <div>
+    <div style="font-weight:600;">Acciones del alquiler</div>
+    <div style="font-size:13px; color:var(--text-dim);">Gestiona el pago o finaliza el alquiler.</div>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <a href="{{ url_for('nuevo_pago', alquiler_id=alquiler.id) }}" class="btn btn-primary">💳 Registrar pago</a>
+    <form method="POST" action="{{ url_for('finalizar_alquiler', id=alquiler.id) }}"
+          onsubmit="return confirm('¿Confirmar finalización del alquiler?')">
+      <button type="submit" class="btn btn-success">✅ Finalizar alquiler</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+<!-- HISTORIAL DE EVENTOS (MongoDB) -->
+<div class="card">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+    <h3 style="font-size:14px;">⚡ Historial de eventos</h3>
+    <span style="font-size:11px; font-family:'DM Mono',monospace;
+                 background:rgba(79,142,247,.15); color:var(--accent);
+                 padding:2px 8px; border-radius:99px;">MongoDB</span>
+  </div>
+
+  {% if logs %}
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    {% for log in logs %}
+    <div style="display:flex; gap:14px; align-items:flex-start;
+                padding:12px; background:var(--surface2);
+                border-radius:8px; border-left:3px solid
+                {% if log.accion == 'crear' %}var(--accent2)
+                {% elif log.accion == 'finalizar' %}var(--accent)
+                {% elif log.accion == 'eliminar' %}var(--danger)
+                {% else %}var(--warning){% endif %};">
+
+      <div style="font-size:20px; line-height:1;">
+        {% if log.accion == 'crear' %}✚
+        {% elif log.accion == 'finalizar' %}✔
+        {% elif log.accion == 'editar' %}✎
+        {% else %}●{% endif %}
+      </div>
+
+      <div style="flex:1;">
+        <div style="font-size:13px; font-weight:600;">{{ log.descripcion }}</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:3px;
+                    font-family:'DM Mono',monospace;">
+          {{ log.fecha.strftime('%d/%m/%Y %H:%M:%S') }}
+        </div>
+        {% if log.datos_extra %}
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          {% for k, v in log.datos_extra.items() %}
+          <span style="font-size:11px; font-family:'DM Mono',monospace;
+                       background:var(--surface); padding:2px 8px;
+                       border-radius:4px; color:var(--text-dim);">
+            <span style="color:var(--accent);">{{ k }}</span>: {{ v }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="padding:20px;">
+    <p>No hay eventos registrados para este alquiler.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
