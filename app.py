@@ -1,42 +1,229 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import func
 from config import Config
-from models import db, Cliente, BanoPortatil
+from models import Usuario, db, Cliente, BanoPortatil
 from flask_pymongo import PyMongo
 from models import Alquiler, DetalleAlquiler
 from models import Pago
 from models import Mantenimiento
 from datetime import datetime
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, set_access_cookies, unset_jwt_cookies
+from functools import wraps
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 mongo = PyMongo(app)
+jwt = JWTManager(app)
+
+#Ayuda a iniciar sesión con el rol
+@jwt.unauthorized_loader
+def unauthorized_callback(callback):
+
+    flash("Debes iniciar sesión.", "warning")
+
+    return redirect(url_for('login'))
+
+#Ayuda a cerrar sesión
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+
+    flash(
+        "Tu sesión expiró. Inicia sesión nuevamente.",
+        "warning"
+    )
+
+    response = redirect(
+        url_for('login')
+    )
+
+    unset_jwt_cookies(
+        response
+    )
+
+    return response
+
+# ══════════════════════════════════════════
+#  USUARIO DISPONIBLE EN TODOS LOS TEMPLATES
+# ══════════════════════════════════════════
+@app.context_processor
+def inject_user():
+
+    try:
+
+        current_user_id = get_jwt_identity()
+
+        if current_user_id:
+
+            user = Usuario.query.get(
+                current_user_id
+            )
+
+            return dict(
+                current_user=user
+            )
+
+    except:
+        pass
+
+    return dict(
+        current_user=None
+    )
+
+# ══════════════════════════════════════════
+#  MANEJO DE ERRORES JWT
+# ══════════════════════════════════════════
+@jwt.unauthorized_loader
+def token_faltante(callback):
+    flash("Debes iniciar sesión para continuar.", "warning")
+    return redirect(url_for('login'))
+
+
+@jwt.expired_token_loader
+def token_expirado(jwt_header, jwt_payload):
+    flash("Tu sesión ha expirado.", "warning")
+    return redirect(url_for('login'))
+
+
+@jwt.invalid_token_loader
+def token_invalido(callback):
+    flash("Sesión inválida.", "danger")
+    return redirect(url_for('login'))
+
+# ══════════════════════════════════════════
+#  DECORADOR DE ROLES
+# ══════════════════════════════════════════
+def admin_required(f):
+    @wraps(f)
+    @jwt_required()
+    def decorated_function(*args, **kwargs):
+        current_user_id = get_jwt_identity()
+        user = Usuario.query.get(current_user_id)
+        if not user or user.rol != 'admin':
+            flash("Acceso denegado: Se requieren permisos de administrador.", "danger")
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ══════════════════════════════════════════
+#  DECORADORES DE SEGURIDAD (JWT + RBAC)
+# ══════════════════════════════════════════
+def admin_required(f):
+    @wraps(f)
+    @jwt_required()
+    def decorated_function(*args, **kwargs):
+
+        current_user_id = get_jwt_identity()
+        user = Usuario.query.get(current_user_id)
+
+        if not user or user.rol != 'admin':
+            flash(
+                "Acceso denegado: Se requieren permisos de administrador.",
+                "danger"
+            )
+            return redirect(url_for('index'))
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def roles_required(*roles_permitidos):
+    """
+    Permite restringir rutas según rol.
+
+    Ejemplo:
+    @roles_required('admin', 'operador')
+    """
+
+    def decorator(f):
+
+        @wraps(f)
+        @jwt_required()
+        def decorated_function(*args, **kwargs):
+
+            current_user_id = get_jwt_identity()
+            user = Usuario.query.get(current_user_id)
+
+            if not user:
+                flash(
+                    "Usuario no encontrado.",
+                    "danger"
+                )
+                return redirect(url_for('login'))
+
+            if user.rol not in roles_permitidos:
+                flash(
+                    "No tienes permisos para realizar esta acción.",
+                    "danger"
+                )
+                return redirect(url_for('index'))
+
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
 
 # ══════════════════════════════════════════
 #  LOG DE ACTIVIDAD (MongoDB)
 # ══════════════════════════════════════════
 def registrar_log(accion, modulo, descripcion, datos_extra=None):
-    """
-    Guarda un evento en MongoDB.
-    - accion      : 'crear', 'editar', 'eliminar', 'finalizar', etc.
-    - modulo      : 'clientes', 'banos', 'alquileres', 'pagos', 'mantenimiento'
-    - descripcion : texto legible del evento
-    - datos_extra : dict con cualquier info adicional (flexible, sin esquema fijo)
-    """
+
+    usuario_actual = None
+
+
+    try:
+
+        user_id = get_jwt_identity()
+
+        if user_id:
+
+            usuario_actual = Usuario.query.get(
+                int(user_id)
+            )
+
+    except:
+
+        pass
+
+
     log = {
+
         'accion'      : accion,
         'modulo'      : modulo,
         'descripcion' : descripcion,
         'fecha'       : datetime.utcnow(),
+
+        'usuario'     : usuario_actual.nombre if usuario_actual else 'Sistema',
+
+        'email'       : usuario_actual.email if usuario_actual else 'sistema',
+
+        'rol'         : usuario_actual.rol if usuario_actual else 'sistema',
+
         'datos_extra' : datos_extra or {}
+
     }
-    mongo.db.logs.insert_one(log)
+
+
+    try:
+
+        mongo.db.logs.insert_one(
+            log
+        )
+
+    except Exception as e:
+
+        print(
+            "MongoDB no disponible:",
+            e
+        )
 
 # ══════════════════════════════════════════
 #  INICIO
 # ══════════════════════════════════════════
 @app.route('/')
+@jwt_required()
 def index():
     # Baños
     total_banos      = BanoPortatil.query.filter_by(activo=True).count()
@@ -74,15 +261,77 @@ def index():
     )
 
 # ══════════════════════════════════════════
+#  LOGIN
+# ══════════════════════════════════════════
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = Usuario.query.filter_by(email=email).first()
+
+        if user and user.check_password(password):
+            access_token = create_access_token(identity=str(user.id))
+            response = redirect(url_for('index'))
+            set_access_cookies(response, access_token)
+            flash(f"Bienvenido de nuevo, {user.nombre}", "success")
+            return response
+        
+        flash("Credenciales inválidas", "danger")
+    return render_template('login.html')
+
+# ══════════════════════════════════════════
+#  REGISTRO DE USUARIOS
+# ══════════════════════════════════════════
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
+
+    if request.method == 'POST':
+
+        email = request.form.get('email')
+        username = request.form.get('username')
+        nombre = request.form.get('nombre')
+        password = request.form.get('password')
+
+        # Validar duplicados
+        existe = Usuario.query.filter_by(email=email).first()
+
+        if existe:
+            flash("Ya existe un usuario con ese correo.", "danger")
+            return render_template('registro.html')
+
+        # Crear usuario
+        usuario = Usuario(
+            email=email,
+            username=username,
+            nombre=nombre,
+            rol='consultor'
+        )
+
+        # Hash seguro
+        usuario.set_password(password)
+
+        db.session.add(usuario)
+        db.session.commit()
+
+        flash("Usuario registrado correctamente.", "success")
+
+        return redirect(url_for('login'))
+
+    return render_template('registro.html')
+
+# ══════════════════════════════════════════
 #  CLIENTES
 # ══════════════════════════════════════════
 @app.route('/clientes')
+@jwt_required()
 def clientes():
     lista = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).all()
     return render_template('clientes.html', clientes=lista)
 
 
 @app.route('/clientes/nuevo', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def nuevo_cliente():
     if request.method == 'POST':
         # Verificar RUC/CI duplicado
@@ -114,6 +363,7 @@ def nuevo_cliente():
 
 
 @app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def editar_cliente(id):
     cliente = Cliente.query.get_or_404(id)
 
@@ -147,6 +397,7 @@ def editar_cliente(id):
 
 
 @app.route('/clientes/eliminar/<int:id>')
+@roles_required('admin')
 def eliminar_cliente(id):
     cliente = Cliente.query.get_or_404(id)
     # Baja lógica: simplemente marcamos como inactivo
@@ -166,12 +417,14 @@ def eliminar_cliente(id):
 #  BAÑOS PORTÁTILES
 # ══════════════════════════════════════════
 @app.route('/banos')
+@jwt_required()
 def banos():
     lista = BanoPortatil.query.filter_by(activo=True).order_by(BanoPortatil.codigo).all()
     return render_template('banos.html', banos=lista)
 
 
 @app.route('/banos/nuevo', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def nuevo_bano():
     if request.method == 'POST':
         # Verificar código duplicado
@@ -203,6 +456,7 @@ def nuevo_bano():
 
 
 @app.route('/banos/editar/<int:id>', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def editar_bano(id):
     bano = BanoPortatil.query.get_or_404(id)
 
@@ -236,6 +490,7 @@ def editar_bano(id):
 
 
 @app.route('/banos/eliminar/<int:id>')
+@roles_required('admin')
 def eliminar_bano(id):
     bano = BanoPortatil.query.get_or_404(id)
     # Baja lógica
@@ -248,12 +503,14 @@ def eliminar_bano(id):
 #  ALQUILERES
 # ══════════════════════════════════════════
 @app.route('/alquileres')
+@jwt_required()
 def alquileres():
     lista = Alquiler.query.order_by(Alquiler.fecha_registro.desc()).all()
     return render_template('alquileres.html', alquileres=lista)
 
 
 @app.route('/alquileres/nuevo', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def nuevo_alquiler():
     clientes = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).all()
     banos    = BanoPortatil.query.filter_by(activo=True, estado='disponible').all()
@@ -372,6 +629,7 @@ def detalle_alquiler(id):
     return render_template('detalle_alquiler.html', alquiler=alquiler, logs=logs)
 
 @app.route('/alquileres/<int:id>/finalizar', methods=['POST'])
+@roles_required('admin', 'operador')
 def finalizar_alquiler(id):
     alquiler = Alquiler.query.get_or_404(id)
 
@@ -398,12 +656,14 @@ def finalizar_alquiler(id):
 #  PAGOS
 # ══════════════════════════════════════════
 @app.route('/pagos')
+@jwt_required()
 def pagos():
     lista = Pago.query.order_by(Pago.fecha_pago.desc()).all()
     return render_template('pagos.html', pagos=lista)
 
 
 @app.route('/pagos/nuevo/<int:alquiler_id>', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def nuevo_pago(alquiler_id):
     alquiler = Alquiler.query.get_or_404(alquiler_id)
 
@@ -443,6 +703,7 @@ def nuevo_pago(alquiler_id):
 
 
 @app.route('/pagos/anular/<int:pago_id>')
+@roles_required('admin')
 def anular_pago(pago_id):
     pago = Pago.query.get_or_404(pago_id)
     pago.estado = 'reembolsado'
@@ -454,12 +715,14 @@ def anular_pago(pago_id):
 #  MANTENIMIENTO
 # ══════════════════════════════════════════
 @app.route('/mantenimiento')
+@jwt_required()
 def mantenimiento():
     lista = Mantenimiento.query.order_by(Mantenimiento.fecha_inicio.desc()).all()
     return render_template('mantenimiento.html', registros=lista)
 
 
 @app.route('/mantenimiento/nuevo', methods=['GET', 'POST'])
+@roles_required('admin', 'operador')
 def nuevo_mantenimiento():
     banos = BanoPortatil.query.filter_by(activo=True).all()
 
@@ -498,6 +761,7 @@ def nuevo_mantenimiento():
 
 
 @app.route('/mantenimiento/<int:id>/completar', methods=['POST'])
+@roles_required('admin', 'operador')
 def completar_mantenimiento(id):
     registro = Mantenimiento.query.get_or_404(id)
 
@@ -524,6 +788,7 @@ def completar_mantenimiento(id):
 #  REPORTES
 # ══════════════════════════════════════════
 @app.route('/reportes')
+@admin_required
 def reportes():
     # ── Alquileres activos
     alquileres_activos = Alquiler.query.filter_by(estado='activo').all()
@@ -575,6 +840,7 @@ def reportes():
 #  ACTIVIDAD (MongoDB)
 # ══════════════════════════════════════════
 @app.route('/actividad')
+@admin_required
 def actividad():
     modulo = request.args.get('modulo', 'todos')
 
@@ -610,6 +876,63 @@ def detalle_bano(id):
 #  ARRANQUE
 # ══════════════════════════════════════════
 if __name__ == '__main__':
+
     with app.app_context():
+
         db.create_all()
-    app.run(debug=True, use_reloader=False)
+
+        usuarios_iniciales = [
+
+            {
+                'username': 'admin',
+                'nombre': 'Administrador',
+                'email': 'admin@admin.com',
+                'password': '123456',
+                'rol': 'admin'
+            },
+
+            {
+                'username': 'operador',
+                'nombre': 'Usuario Operador',
+                'email': 'operador@admin.com',
+                'password': '123456',
+                'rol': 'operador'
+            },
+
+            {
+                'username': 'consultor',
+                'nombre': 'Usuario Consultor',
+                'email': 'consultor@admin.com',
+                'password': '123456',
+                'rol': 'consultor'
+            }
+        ]
+
+
+        for datos in usuarios_iniciales:
+
+            existe = Usuario.query.filter_by(
+                email=datos['email']
+            ).first()
+
+            if not existe:
+
+                usuario = Usuario(
+                    username=datos['username'],
+                    nombre=datos['nombre'],
+                    email=datos['email'],
+                    rol=datos['rol']
+                )
+
+                usuario.set_password(
+                    datos['password']
+                )
+
+                db.session.add(usuario)
+
+        db.session.commit()
+
+    app.run(
+        debug=True,
+        use_reloader=False
+    )
